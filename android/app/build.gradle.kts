@@ -42,3 +42,10 @@ android {
 flutter {
     source = "../.."
 }
+
+apply(from = "../../cargokit/gradle/plugin.gradle")
+
+configure<CargoKitExtension> {
+    manifestDir = "../../rust"
+    libname = "rust_ex"
+}

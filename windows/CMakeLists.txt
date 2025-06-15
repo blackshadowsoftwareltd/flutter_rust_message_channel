@@ -106,3 +106,15 @@ install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
 install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   CONFIGURATIONS Profile;Release
   COMPONENT Runtime)
+
+
+  include("../../cargokit/cmake/cargokit.cmake")
+  apply_cargokit(${BINARY_NAME}
+      # relative path to folder containing cargo manifest:
+      ../../rust
+      # cargo package name:
+      rust_ex
+      # any exported symbol from the library (used to force linking of the DLL):
+      rust_ex_init_message_channel_context
+  )
+  

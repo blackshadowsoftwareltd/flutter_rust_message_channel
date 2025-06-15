@@ -48,7 +48,7 @@ fn init_logging() {
 
 // Initializes message channel context.
 #[no_mangle]
-pub extern "C" fn rust_example_init_message_channel_context(data: *mut c_void) -> FunctionResult {
+pub extern "C" fn rust_ex_init_message_channel_context(data: *mut c_void) -> FunctionResult {
     debug!(
         "Initializing message channel context from dart thread {:?}",
         thread::current().id()
@@ -59,7 +59,7 @@ pub extern "C" fn rust_example_init_message_channel_context(data: *mut c_void) -
 
 // Entry-point - called from dart.
 #[no_mangle]
-pub extern "C" fn rust_example_init_native(ffi_ptr: *mut c_void, port: i64) {
+pub extern "C" fn rust_ex_init_native(ffi_ptr: *mut c_void, port: i64) {
     init_logging();
     irondash_dart_ffi::irondash_init_ffi(ffi_ptr);
     // Schedule initialization on main thread. When completed return the
