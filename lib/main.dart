@@ -37,6 +37,7 @@ Future<void> _initNative() async {
 final nativeContext = _initNativeContext();
 
 final _channel = NativeMethodChannel('addition_channel', context: nativeContext);
+final _obj = NativeMethodChannel('obj', context: nativeContext);
 
 final _channelBackgroundThread = NativeMethodChannel('addition_channel_background_thread', context: nativeContext);
 
@@ -52,10 +53,10 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  void _showResult(Object res) {
+  Future<void> _showResult(Object res) async {
     const encoder = JsonEncoder.withIndent('  ');
     final text = encoder.convert(res);
-    showDialog(
+    await showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -74,24 +75,30 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  void _passObj() async {
+    final payload = ObjPayload(tag: 'order', value: '1234');
+    final res = await _obj.invokeMethod('insert', payload.toJson());
+    print(res);
+  }
+
   void _callRustOnPlatformThread() async {
     final res = await _channel.invokeMethod('add', {'a': 10.0, 'b': 20.0});
-    _showResult(res);
+    await _showResult(res);
   }
 
   void _callRustOnBackgroundThread() async {
     final res = await _channelBackgroundThread.invokeMethod('add', {'a': 15.0, 'b': 5.0});
-    _showResult(res);
+    await _showResult(res);
   }
 
   void _callSlowMethod() async {
     final res = await _slowChannel.invokeMethod('getMeaningOfUniverse', {});
-    _showResult(res);
+    await _showResult(res);
   }
 
   void _loadPage() async {
     final res = await _httpClientChannel.invokeMethod('load', {'url': 'https://flutter.dev'});
-    _showResult(res);
+    await _showResult(res);
   }
 
   @override
@@ -107,6 +114,11 @@ class _MyHomePageState extends State<MyHomePage> {
             TextButton(onPressed: _loadPage, child: const Text('Load page using Reqwest/Tokio')),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _passObj,
+        tooltip: 'Pass Object',
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -128,4 +140,20 @@ class MyApp extends StatelessWidget {
       home: const MyHomePage(),
     );
   }
+}
+
+class ObjPayload {
+  final String tag;
+  final String value;
+  ObjPayload({required this.tag, required this.value});
+  Map<String, dynamic> toJson() {
+    final result = <String, dynamic>{};
+    result.addAll({'tag': tag});
+    result.addAll({'value': value});
+    return result;
+  }
+
+  factory ObjPayload.fromJson(Map<String, dynamic> map) => ObjPayload(tag: map['tag'] ?? '', value: map['value'] ?? '');
+  String toRawJson() => json.encode(toJson());
+  factory ObjPayload.fromRawJson(String source) => ObjPayload.fromJson(json.decode(source));
 }

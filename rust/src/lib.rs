@@ -10,6 +10,7 @@ use log::debug;
 
 mod addition;
 mod http_client;
+pub mod obj;
 mod slow;
 
 fn init_on_main_thread() {
@@ -19,6 +20,7 @@ fn init_on_main_thread() {
     );
     assert!(RunLoop::sender_for_main_thread().unwrap().is_same_thread());
 
+    obj::init();
     addition::init();
     slow::init();
     http_client::init();
