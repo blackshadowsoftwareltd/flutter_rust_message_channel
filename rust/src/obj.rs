@@ -7,6 +7,8 @@ use irondash_message_channel::{
 use irondash_run_loop::RunLoop;
 use log::debug;
 
+use crate::get_dart_port;
+
 pub struct Obj {}
 
 #[derive(TryFromValue, IntoValue)]
@@ -28,6 +30,21 @@ impl AsyncMethodHandler for Obj {
                 let mut payload: ObjPayload = call.args.try_into()?;
                 payload.value = "Inserted Value".to_string();
                 Ok(payload.into())
+            }
+            "listen" => {
+                match get_dart_port() {
+                    Some(dart_port) => {
+                        for x in 0..10 {
+                            let message = format!("Message {} from Rust", x);
+                            dart_port.send(message);
+                            thread::sleep(std::time::Duration::from_millis(100));
+                        }
+                    }
+                    None => {
+                        println!("Dart Port Not Found");
+                    }
+                }
+                Ok("payload".into())
             }
             _ => Err(irondash_message_channel::PlatformError {
                 code: "invalid_method".into(),

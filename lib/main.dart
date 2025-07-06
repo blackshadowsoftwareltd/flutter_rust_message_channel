@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:irondash_message_channel/irondash_message_channel.dart';
 
+late final ReceivePort port;
 final _dylib = defaultTargetPlatform == TargetPlatform.android
     ? DynamicLibrary.open("librust_ex.so")
     : (defaultTargetPlatform == TargetPlatform.windows ? DynamicLibrary.open("rust_ex.dll") : DynamicLibrary.process());
@@ -26,12 +27,15 @@ MessageChannelContext _initNativeContext() {
 // The initialization is done on platform thread. So native code will post
 // a message on the port when it's done.
 Future<void> _initNative() async {
-  final port = ReceivePort();
+  port = ReceivePort();
   final function = _dylib
       .lookup<NativeFunction<Void Function(Pointer<Void>, Int64)>>("rust_ex_init_native")
       .asFunction<void Function(Pointer<Void>, int)>();
   function(NativeApi.initializeApiDLData, port.sendPort.nativePort);
-  return await port.first;
+  port.listen((message) {
+    print('Dart Receiveport Message: $message');
+  });
+  // return await port.first;
 }
 
 final nativeContext = _initNativeContext();
@@ -81,6 +85,12 @@ class _MyHomePageState extends State<MyHomePage> {
     print(res);
   }
 
+  void _listenObj() async {
+    final payload = ObjPayload(tag: 'order', value: '1234');
+    final res = await _obj.invokeMethod('listen', payload.toJson());
+    print(res);
+  }
+
   void _callRustOnPlatformThread() async {
     final res = await _channel.invokeMethod('add', {'a': 10.0, 'b': 20.0});
     await _showResult(res);
@@ -115,11 +125,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _passObj,
-        tooltip: 'Pass Object',
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: ElevatedButton(onPressed: _passObj, onLongPress: _listenObj, child: const Icon(Icons.add)),
     );
   }
 }

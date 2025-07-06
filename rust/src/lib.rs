@@ -1,17 +1,18 @@
 use std::{
-    ffi::c_void,
-    thread::{self},
+    ffi::c_void, sync::atomic::AtomicI64, thread::{self}
 };
-
+ 
 use irondash_dart_ffi::{DartPort, DartValue};
 use irondash_message_channel::{irondash_init_message_channel_context, FunctionResult};
 use irondash_run_loop::RunLoop;
 use log::debug;
-
 mod addition;
+// mod channel;
 mod http_client;
 pub mod obj;
 mod slow;
+
+static DART_PORT: AtomicI64 = AtomicI64::new(0);
 
 fn init_on_main_thread() {
     debug!(
@@ -23,7 +24,7 @@ fn init_on_main_thread() {
     obj::init();
     addition::init();
     slow::init();
-    http_client::init();
+    http_client::init(); 
 }
 
 #[cfg(not(any(target_os = "ios", target_os = "android")))]
@@ -67,8 +68,41 @@ pub extern "C" fn rust_ex_init_native(ffi_ptr: *mut c_void, port: i64) {
     // Schedule initialization on main thread. When completed return the
     // texture id back to dart through a port.
     RunLoop::sender_for_main_thread().unwrap().send(move || {
+        set_dart_port(port);
         let port = DartPort::new(port);
         init_on_main_thread();
         port.send(DartValue::Null);
     });
+}
+
+pub fn get_dart_port() -> Option<DartPort> {
+    match DART_PORT.load(std::sync::atomic::Ordering::Relaxed) {
+        0 => None,
+        port => Some(DartPort::new(port)),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn set_dart_port_ffi(port: i64) {
+    set_dart_port(port);
+
+    // _ = std::thread::spawn(|| {
+    //     let large_string = {
+    //         let mut s = String::new();
+    //         for _ in 0..1000 {
+    //             s.push_str("Hello, World! ");
+    //         }
+    //         s
+    //     };
+    //     loop {
+    //         std::thread::sleep(std::time::Duration::from_millis(50));
+    //         send_string_to_dart(large_string.clone());
+    //     }
+    // });
+}
+
+pub fn set_dart_port(port: i64) {
+    println!("---- Setting Dart port to: {}", port);
+    DART_PORT.store(port, std::sync::atomic::Ordering::Relaxed);
+    println!("---- Dart port seted");
 }
